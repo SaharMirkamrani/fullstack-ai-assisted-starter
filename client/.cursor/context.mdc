@@ -1,0 +1,182 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Frontend Application Context
+
+## 🏗️ Architecture Overview
+
+This is a modern React-based frontend application with the following characteristics:
+
+### Technology Stack
+- **Framework**: React 18+ with TypeScript
+- **Build Tool**: Vite or Next.js
+- **Styling**: CSS-in-JS (Styled Components/Emotion) or Tailwind CSS
+- **State Management**: React Context + useReducer or Redux Toolkit
+- **Testing**: React Testing Library + Jest
+- **Linting**: ESLint + Prettier
+- **Package Manager**: npm or yarn
+
+### Project Structure
+```
+client/
+├── src/
+│   ├── components/          # Reusable UI components
+│   │   ├── common/         # Shared components (Button, Input, etc.)
+│   │   ├── layout/         # Layout components (Header, Footer, etc.)
+│   │   └── features/       # Feature-specific components
+│   ├── pages/              # Route-level components
+│   ├── hooks/              # Custom React hooks
+│   ├── utils/              # Utility functions
+│   ├── types/              # TypeScript type definitions
+│   ├── services/           # API calls and external integrations
+│   ├── styles/             # Global styles and themes
+│   └── assets/             # Static assets (images, icons, etc.)
+├── public/                 # Public assets
+├── tests/                  # Test files
+└── package.json
+```
+
+## 🎨 Design System
+
+### Color Palette
+- **Primary**: Modern, accessible color scheme
+- **Secondary**: Supporting colors for accents
+- **Neutral**: Grays for text and backgrounds
+- **Semantic**: Success, warning, error colors
+
+### Typography
+- **Font Family**: System fonts or custom web fonts
+- **Font Sizes**: Responsive scale (12px to 48px)
+- **Line Heights**: 1.4 to 1.6 for readability
+- **Font Weights**: 400 (regular), 500 (medium), 600 (semibold), 700 (bold)
+
+### Spacing
+- **Base Unit**: 4px or 8px grid system
+- **Spacing Scale**: 4px, 8px, 12px, 16px, 24px, 32px, 48px, 64px
+- **Container Max Width**: 1200px or 1400px
+
+### Breakpoints
+- **Mobile**: 320px - 767px
+- **Tablet**: 768px - 1023px
+- **Desktop**: 1024px - 1439px
+- **Large Desktop**: 1440px+
+
+## 🔧 Development Patterns
+
+### Component Patterns
+- **Atomic Design**: Atoms → Molecules → Organisms → Templates → Pages
+- **Compound Components**: Related components that work together
+- **Render Props**: For flexible component composition
+- **Higher-Order Components**: For cross-cutting concerns
+
+### State Management Patterns
+- **Local State**: useState for component-specific state
+- **Shared State**: Context + useReducer for app-wide state
+- **Server State**: Custom hooks for API data management
+- **Form State**: React Hook Form or Formik
+
+### Performance Patterns
+- **Code Splitting**: Route-based and component-based
+- **Memoization**: React.memo, useMemo, useCallback
+- **Virtualization**: For large lists and tables
+- **Lazy Loading**: Images and heavy components
+
+## 📡 API Integration
+
+### API Client
+- **Base URL**: Configured via environment variables
+- **Authentication**: JWT tokens or session-based
+- **Error Handling**: Centralized error handling
+- **Request/Response Interceptors**: For logging and auth
+
+### Data Fetching Patterns
+- **Custom Hooks**: Encapsulate API logic
+- **React Query/SWR**: For caching and synchronization
+- **Optimistic Updates**: For better UX
+- **Error Boundaries**: For graceful error handling
+
+## 🧪 Testing Strategy
+
+### Testing Pyramid
+- **Unit Tests**: Individual components and functions
+- **Integration Tests**: Component interactions
+- **E2E Tests**: Critical user journeys
+
+### Testing Tools
+- **React Testing Library**: Component testing
+- **Jest**: Test runner and mocking
+- **MSW**: API mocking
+- **Cypress/Playwright**: E2E testing
+
+## 🚀 Performance Targets
+
+### Core Web Vitals
+- **LCP**: < 2.5s
+- **FID**: < 100ms
+- **CLS**: < 0.1
+
+### Bundle Size
+- **Initial Load**: < 200KB gzipped
+- **Total Bundle**: < 1MB gzipped
+- **Code Splitting**: Route-based and feature-based
+
+## 🔒 Security Considerations
+
+### Frontend Security
+- **Content Security Policy**: Configured headers
+- **XSS Prevention**: Input sanitization
+- **CSRF Protection**: Token-based protection
+- **Secure Storage**: HttpOnly cookies for sensitive data
+
+### Authentication Flow
+- **Login**: Email/password or OAuth
+- **Token Management**: Secure storage and refresh
+- **Route Protection**: Guarded routes
+- **Session Management**: Automatic logout on expiry
+
+## 📱 Responsive Design
+
+### Mobile-First Approach
+- **Touch Targets**: Minimum 44px
+- **Gestures**: Swipe, pinch, tap
+- **Performance**: Optimized for slower networks
+- **Offline**: Service worker for caching
+
+### Progressive Enhancement
+- **Core Functionality**: Works without JavaScript
+- **Enhanced Experience**: JavaScript adds interactivity
+- **Graceful Degradation**: Fallbacks for unsupported features
+
+## 🎯 Accessibility Standards
+
+### WCAG 2.1 AA Compliance
+- **Keyboard Navigation**: Full keyboard support
+- **Screen Readers**: Proper ARIA labels and roles
+- **Color Contrast**: Minimum 4.5:1 ratio
+- **Focus Management**: Visible focus indicators
+
+### Inclusive Design
+- **Multiple Input Methods**: Mouse, keyboard, touch, voice
+- **Clear Language**: Simple, concise text
+- **Error Prevention**: Clear error messages and validation
+- **Flexible Layout**: Adapts to user preferences
+
+## 🔄 Development Workflow
+
+### Code Quality
+- **ESLint**: Code linting and formatting
+- **Prettier**: Code formatting
+- **Husky**: Git hooks for quality checks
+- **TypeScript**: Static type checking
+
+### Build Process
+- **Development**: Hot reload and fast refresh
+- **Staging**: Production-like environment
+- **Production**: Optimized builds with tree shaking
+
+### Deployment
+- **CI/CD**: Automated testing and deployment
+- **Environment Variables**: Secure configuration management
+- **Monitoring**: Error tracking and performance monitoring

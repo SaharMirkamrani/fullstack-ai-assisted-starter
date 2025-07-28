@@ -1,0 +1,457 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Backend AI Coding Rules
+
+## 🎯 General Principles
+
+- **API-First**: Design RESTful or GraphQL APIs with clear contracts
+- **Type Safety**: Use TypeScript for all new code
+- **Security**: Implement proper authentication, authorization, and validation
+- **Performance**: Optimize database queries and API response times
+- **Scalability**: Design for horizontal scaling and microservices architecture
+- **Observability**: Comprehensive logging, monitoring, and error tracking
+
+## 🏗️ Architecture Guidelines
+
+### Project Structure
+```
+server/
+├── src/
+│   ├── controllers/        # Request handlers
+│   ├── services/          # Business logic
+│   ├── models/            # Data models and schemas
+│   ├── middleware/        # Express middleware
+│   ├── routes/            # API route definitions
+│   ├── utils/             # Utility functions
+│   ├── types/             # TypeScript type definitions
+│   ├── config/            # Configuration files
+│   └── tests/             # Test files
+├── prisma/                # Database schema and migrations
+├── docs/                  # API documentation
+└── package.json
+```
+
+### Code Organization
+```typescript
+// Controller pattern
+export class UserController {
+  constructor(private userService: UserService) {}
+
+  async createUser(req: Request, res: Response): Promise<void> {
+    try {
+      const userData = req.body;
+      const user = await this.userService.createUser(userData);
+      res.status(201).json(user);
+    } catch (error) {
+      this.handleError(error, res);
+    }
+  }
+
+  private handleError(error: Error, res: Response): void {
+    // Centralized error handling
+  }
+}
+
+// Service pattern
+export class UserService {
+  constructor(private userRepository: UserRepository) {}
+
+  async createUser(userData: CreateUserDto): Promise<User> {
+    // Business logic implementation
+  }
+}
+```
+
+## 🔐 Security Guidelines
+
+### Authentication & Authorization
+```typescript
+// JWT Authentication middleware
+export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ message: 'Access token required' });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET!, (err: any, user: any) => {
+    if (err) return res.status(403).json({ message: 'Invalid token' });
+    req.user = user;
+    next();
+  });
+};
+
+// Role-based authorization
+export const authorizeRoles = (...roles: string[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Insufficient permissions' });
+    }
+    next();
+  };
+};
+```
+
+### Input Validation
+```typescript
+// Use Joi or Zod for validation
+import Joi from 'joi';
+
+const createUserSchema = Joi.object({
+  email: Joi.string().email().required(),
+  password: Joi.string().min(8).required(),
+  name: Joi.string().min(2).required()
+});
+
+export const validateCreateUser = (req: Request, res: Response, next: NextFunction) => {
+  const { error } = createUserSchema.validate(req.body);
+  if (error) {
+    return res.status(400).json({ message: error.details[0].message });
+  }
+  next();
+};
+```
+
+## 🗄️ Database Guidelines
+
+### Query Optimization
+```typescript
+// Use Prisma for type-safe database access
+export class UserRepository {
+  async findUserWithPosts(userId: string): Promise<User | null> {
+    return await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        posts: {
+          select: {
+            id: true,
+            title: true,
+            createdAt: true
+          }
+        }
+      }
+    });
+  }
+
+  // Use pagination for large datasets
+  async findUsers(page: number = 1, limit: number = 10): Promise<User[]> {
+    const skip = (page - 1) * limit;
+    return await prisma.user.findMany({
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+}
+```
+
+### Database Transactions
+```typescript
+// Use transactions for data consistency
+export class OrderService {
+  async createOrder(orderData: CreateOrderDto): Promise<Order> {
+    return await prisma.$transaction(async (tx) => {
+      // Create order
+      const order = await tx.order.create({
+        data: orderData
+      });
+
+      // Update inventory
+      await tx.product.update({
+        where: { id: orderData.productId },
+        data: { stock: { decrement: orderData.quantity } }
+      });
+
+      return order;
+    });
+  }
+}
+```
+
+## 📡 API Design Guidelines
+
+### RESTful API Patterns
+```typescript
+// Standard REST endpoints
+router.get('/users', userController.getUsers);
+router.get('/users/:id', userController.getUser);
+router.post('/users', userController.createUser);
+router.put('/users/:id', userController.updateUser);
+router.delete('/users/:id', userController.deleteUser);
+
+// Nested resources
+router.get('/users/:userId/posts', userController.getUserPosts);
+router.post('/users/:userId/posts', userController.createUserPost);
+```
+
+### Response Format
+```typescript
+// Consistent response structure
+interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  errors?: string[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+// Success response
+res.status(200).json({
+  success: true,
+  data: result,
+  message: 'Operation completed successfully'
+});
+
+// Error response
+res.status(400).json({
+  success: false,
+  message: 'Validation failed',
+  errors: ['Email is required', 'Password must be at least 8 characters']
+});
+```
+
+## 🧪 Testing Guidelines
+
+### Unit Testing
+```typescript
+describe('UserService', () => {
+  let userService: UserService;
+  let mockUserRepository: jest.Mocked<UserRepository>;
+
+  beforeEach(() => {
+    mockUserRepository = createMockUserRepository();
+    userService = new UserService(mockUserRepository);
+  });
+
+  describe('createUser', () => {
+    it('should create a new user successfully', async () => {
+      const userData = { email: 'test@example.com', password: 'password123' };
+      const expectedUser = { id: '1', ...userData };
+
+      mockUserRepository.createUser.mockResolvedValue(expectedUser);
+
+      const result = await userService.createUser(userData);
+
+      expect(result).toEqual(expectedUser);
+      expect(mockUserRepository.createUser).toHaveBeenCalledWith(userData);
+    });
+
+    it('should throw error if user already exists', async () => {
+      const userData = { email: 'test@example.com', password: 'password123' };
+
+      mockUserRepository.createUser.mockRejectedValue(new Error('User already exists'));
+
+      await expect(userService.createUser(userData)).rejects.toThrow('User already exists');
+    });
+  });
+});
+```
+
+### Integration Testing
+```typescript
+describe('User API', () => {
+  let app: Express;
+  let server: Server;
+
+  beforeAll(async () => {
+    app = createApp();
+    server = app.listen(0);
+  });
+
+  afterAll(async () => {
+    await server.close();
+  });
+
+  describe('POST /users', () => {
+    it('should create a new user', async () => {
+      const userData = {
+        email: 'test@example.com',
+        password: 'password123',
+        name: 'Test User'
+      };
+
+      const response = await request(app)
+        .post('/users')
+        .send(userData)
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.email).toBe(userData.email);
+    });
+  });
+});
+```
+
+## 🚀 Performance Guidelines
+
+### Caching Strategy
+```typescript
+// Redis caching
+export class CacheService {
+  constructor(private redis: Redis) {}
+
+  async get<T>(key: string): Promise<T | null> {
+    const data = await this.redis.get(key);
+    return data ? JSON.parse(data) : null;
+  }
+
+  async set(key: string, value: any, ttl: number = 3600): Promise<void> {
+    await this.redis.setex(key, ttl, JSON.stringify(value));
+  }
+}
+
+// Cache middleware
+export const cacheMiddleware = (ttl: number = 3600) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const key = `cache:${req.originalUrl}`;
+    const cached = await cacheService.get(key);
+    
+    if (cached) {
+      return res.json(cached);
+    }
+    
+    next();
+  };
+};
+```
+
+### Rate Limiting
+```typescript
+import rateLimit from 'express-rate-limit';
+
+export const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.'
+});
+
+export const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 requests per windowMs
+  message: 'Too many authentication attempts, please try again later.'
+});
+```
+
+## 📊 Monitoring & Logging
+
+### Structured Logging
+```typescript
+import winston from 'winston';
+
+export const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.errors({ stack: true }),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.File({ filename: 'error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'combined.log' })
+  ]
+});
+
+// Logging middleware
+export const requestLogger = (req: Request, res: Response, next: NextFunction) => {
+  const start = Date.now();
+  
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    logger.info('HTTP Request', {
+      method: req.method,
+      url: req.url,
+      status: res.statusCode,
+      duration,
+      userAgent: req.get('User-Agent')
+    });
+  });
+  
+  next();
+};
+```
+
+### Error Handling
+```typescript
+// Global error handler
+export const errorHandler = (error: Error, req: Request, res: Response, next: NextFunction) => {
+  logger.error('Unhandled error', {
+    error: error.message,
+    stack: error.stack,
+    url: req.url,
+    method: req.method
+  });
+
+  if (error instanceof ValidationError) {
+    return res.status(400).json({
+      success: false,
+      message: 'Validation failed',
+      errors: error.details
+    });
+  }
+
+  if (error instanceof AuthenticationError) {
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication failed'
+    });
+  }
+
+  res.status(500).json({
+    success: false,
+    message: 'Internal server error'
+  });
+};
+```
+
+## 🔄 Environment Configuration
+
+### Configuration Management
+```typescript
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+export const config = {
+  port: process.env.PORT || 3000,
+  nodeEnv: process.env.NODE_ENV || 'development',
+  database: {
+    url: process.env.DATABASE_URL!,
+  },
+  jwt: {
+    secret: process.env.JWT_SECRET!,
+    expiresIn: process.env.JWT_EXPIRES_IN || '24h'
+  },
+  redis: {
+    url: process.env.REDIS_URL || 'redis://localhost:6379'
+  }
+} as const;
+```
+
+## 🎯 Code Quality
+
+### Naming Conventions
+- Use camelCase for variables and functions
+- Use PascalCase for classes and interfaces
+- Use UPPER_SNAKE_CASE for constants
+- Use descriptive, meaningful names
+
+### Comments
+- Comment complex business logic
+- Document API endpoints with JSDoc
+- Explain "why" not "what" in comments
+- Keep comments up to date
+
+### Error Handling
+- Use custom error classes
+- Implement proper error boundaries
+- Provide meaningful error messages
+- Log errors with context
