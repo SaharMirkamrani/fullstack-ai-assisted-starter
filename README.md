@@ -10,6 +10,10 @@ A comprehensive boilerplate for creating AI-assisted fullstack applications with
 - **Prompt Engineering**: Organized prompt templates for system, tasks, and refactoring
 - **Scalable Structure**: Designed for growth and team collaboration
 - **Concurrent Development**: Run both backend and frontend with a single command
+- **🔐 Comprehensive Security**: Built-in security measures and guidelines for AI-assisted development
+- **🐛 Advanced Debugging**: Systematic debugging prompts and strategies
+- **🧪 Comprehensive Testing**: Testing strategies and quality assurance prompts
+- **✅ Quality Assurance**: Code quality and best practices guidance
 
 ## 📁 Project Structure
 
@@ -28,6 +32,7 @@ fullstack-ai-assisted-starter/
 │   │   ├── rules.mdc                 # AI coding rules for backend
 │   │   └── context.mdc               # AI context for backend
 │   ├── .cursorignore                 # Ignore files from AI context
+│   ├── SECURITY.md                   # Backend security documentation
 │   └── ...                           # Your backend
 │
 ├── docs/                             # Project documentation
@@ -36,11 +41,41 @@ fullstack-ai-assisted-starter/
 │
 ├── prompts/                          # AI prompt templates
 │   ├── system/                       # System-level prompts
+│   │   ├── architecture.md           # Architecture guidelines
+│   │   ├── security-prompts.md       # Security-focused AI prompts
+│   │   ├── debugging-prompts.md      # Comprehensive debugging strategies
+│   │   ├── testing-prompts.md        # Testing strategies and quality assurance
+│   │   └── quality-assurance-prompts.md # Code quality and best practices
 │   ├── tasks/                        # Task-specific prompts
 │   └── refactor/                     # Refactoring prompts
 │
+├── SECURITY.md                       # Comprehensive security documentation
 └── README.md                         # This file
 ```
+
+## 🔐 Security
+
+This project includes comprehensive security measures and guidelines:
+
+- **Security Documentation**: Complete security checklist and implementation guide in `SECURITY.md`
+- **AI Security Prompts**: Security-focused prompts for AI-assisted development in `prompts/system/security-prompts.md`
+- **Backend Security**: Pre-configured security middleware, rate limiting, and authentication
+- **Frontend Security**: Security headers, input validation, and CSRF protection
+- **Security Testing**: Automated security tests and audit scripts
+
+**⚠️ Important**: When using AI for code generation, always review the generated code for security vulnerabilities. See `SECURITY.md` for detailed guidelines.
+
+## 🐛 Debugging & Testing
+
+This project includes comprehensive debugging and testing support:
+
+- **Debugging Strategies**: Systematic debugging approaches in `prompts/system/debugging-prompts.md`
+- **Testing Frameworks**: Comprehensive testing strategies in `prompts/system/testing-prompts.md`
+- **Quality Assurance**: Code quality and best practices in `prompts/system/quality-assurance-prompts.md`
+- **Error Handling**: Pre-configured error handling and logging
+- **Test Automation**: Automated testing setup and configuration
+
+**💡 Tip**: Use the debugging and testing prompts to ensure robust, maintainable code when working with AI assistants.
 
 ## 🛠️ Getting Started
 
@@ -48,7 +83,8 @@ fullstack-ai-assisted-starter/
 2. **Customize** the AI rules and context files in `.cursor/` directories
 3. **Set up** your frontend and backend applications
 4. **Configure** your development environment
-5. **Start building** with AI assistance!
+5. **Review security documentation** in `SECURITY.md`
+6. **Start building** with AI assistance!
 
 ## 🚀 Quick Start
 

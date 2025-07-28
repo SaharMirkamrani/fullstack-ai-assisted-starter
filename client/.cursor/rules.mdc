@@ -5,33 +5,36 @@ alwaysApply: false
 ---
 # Frontend AI Coding Rules
 
-## 🎯 General Principles
+## 🎯 Core Principles
 
-- **Component-First**: Build reusable, composable components
-- **Type Safety**: Use TypeScript for all new code
-- **Performance**: Optimize for bundle size and runtime performance
-- **Accessibility**: Follow WCAG guidelines and ARIA best practices
-- **Responsive**: Design for mobile-first, then enhance for larger screens
+- **Security First**: Validate all inputs, sanitize data, implement proper authentication
+- **Type Safety**: Use TypeScript for all new code with strict mode
+- **Performance**: Optimize bundle size, implement code splitting, minimize re-renders
+- **Accessibility**: Follow WCAG guidelines, use semantic HTML, implement ARIA
+- **Mobile-First**: Responsive design, touch-friendly interactions
 
-## 🏗️ Architecture Guidelines
+## 🏗️ Architecture & Structure
 
-### Component Structure
+### Component Pattern
 ```typescript
-// Preferred component structure
 interface ComponentProps {
-  // Props interface
+  // Define props with proper types
 }
 
 export const Component: React.FC<ComponentProps> = ({ prop1, prop2 }) => {
-  // Hooks at the top
+  // Hooks first
   const [state, setState] = useState();
   
   // Event handlers
-  const handleEvent = () => {
+  const handleEvent = useCallback(() => {
     // Implementation
-  };
+  }, []);
   
-  // Render
+  // Memoized values
+  const memoizedValue = useMemo(() => {
+    return expensiveCalculation(prop1, prop2);
+  }, [prop1, prop2]);
+  
   return (
     <div>
       {/* JSX */}
@@ -41,18 +44,73 @@ export const Component: React.FC<ComponentProps> = ({ prop1, prop2 }) => {
 ```
 
 ### File Organization
-- **Components**: `/components/` - Reusable UI components
-- **Pages**: `/pages/` - Route-level components
-- **Hooks**: `/hooks/` - Custom React hooks
-- **Utils**: `/utils/` - Utility functions
-- **Types**: `/types/` - TypeScript type definitions
-- **Services**: `/services/` - API calls and external integrations
+- `/components/` - Reusable UI components
+- `/pages/` - Route-level components  
+- `/hooks/` - Custom React hooks
+- `/utils/` - Utility functions
+- `/types/` - TypeScript definitions
+- `/services/` - API calls
 
-## 🎨 Styling Guidelines
+## 🔒 Security Guidelines
 
-### CSS-in-JS (Styled Components/Emotion)
+### Input Validation
 ```typescript
-// Preferred styling approach
+// Always validate user inputs
+const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+// Sanitize data before rendering
+const sanitizeHtml = (html: string): string => {
+  return DOMPurify.sanitize(html);
+};
+```
+
+### Authentication
+```typescript
+// Secure token management
+const useAuth = () => {
+  const [token, setToken] = useState<string | null>(null);
+  
+  const login = useCallback(async (credentials: LoginCredentials) => {
+    try {
+      const response = await api.post('/auth/login', credentials);
+      const { token } = response.data;
+      setToken(token);
+      // Store in httpOnly cookie, not localStorage
+    } catch (error) {
+      // Handle error securely
+    }
+  }, []);
+  
+  return { token, login };
+};
+```
+
+### API Security
+```typescript
+// Secure API client
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  timeout: 10000,
+  withCredentials: true, // Include CSRF tokens
+});
+
+// Request interceptor for CSRF
+api.interceptors.request.use(async (config) => {
+  if (config.method !== 'get') {
+    const csrfToken = await getCSRFToken();
+    config.headers['X-CSRF-Token'] = csrfToken;
+  }
+  return config;
+});
+```
+
+## 🎨 Styling & UI
+
+### CSS-in-JS (Preferred)
+```typescript
 const StyledComponent = styled.div`
   display: flex;
   align-items: center;
@@ -65,26 +123,25 @@ const StyledComponent = styled.div`
 ```
 
 ### CSS Classes
-- Use BEM methodology or similar naming convention
-- Keep classes semantic and descriptive
+- Use BEM methodology
+- Keep classes semantic
 - Avoid deep nesting (max 3 levels)
 
 ## 🔧 State Management
 
 ### Local State
-- Use `useState` for component-local state
-- Use `useReducer` for complex state logic
+- `useState` for simple state
+- `useReducer` for complex state logic
 
 ### Global State
-- Prefer React Context for simple global state
-- Use Redux Toolkit for complex state management
-- Consider Zustand for lightweight global state
+- React Context for simple global state
+- Redux Toolkit for complex state
+- Zustand for lightweight state
 
 ## 📡 API Integration
 
-### API Calls
+### Data Fetching Pattern
 ```typescript
-// Preferred API call pattern
 const useApiData = <T>(endpoint: string) => {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
@@ -110,83 +167,109 @@ const useApiData = <T>(endpoint: string) => {
 };
 ```
 
-## 🧪 Testing Guidelines
+## 🧪 Testing
 
 ### Component Testing
-- Test component rendering and user interactions
-- Mock external dependencies
-- Test error states and loading states
-- Use React Testing Library for component tests
-
-### Test Structure
 ```typescript
 describe('Component', () => {
   it('should render correctly', () => {
-    // Test implementation
+    render(<Component prop1="test" />);
+    expect(screen.getByText('test')).toBeInTheDocument();
   });
 
   it('should handle user interactions', () => {
-    // Test implementation
+    render(<Component />);
+    fireEvent.click(screen.getByRole('button'));
+    // Assert expected behavior
   });
 
   it('should handle error states', () => {
-    // Test implementation
+    // Test error scenarios
   });
 });
 ```
 
-## 🚀 Performance Guidelines
-
-### Code Splitting
-- Use React.lazy() for route-based code splitting
-- Implement dynamic imports for heavy components
-- Consider bundle analysis tools
+## 🚀 Performance
 
 ### Optimization
-- Use React.memo() for expensive components
-- Implement useMemo() and useCallback() appropriately
+- Use `React.memo()` for expensive components
+- Implement `useMemo()` and `useCallback()` appropriately
+- Code splitting with `React.lazy()`
 - Optimize images and assets
-- Minimize re-renders
 
-## 🔒 Security Guidelines
+### Bundle Optimization
+```typescript
+// Dynamic imports for code splitting
+const HeavyComponent = lazy(() => import('./HeavyComponent'));
 
-### Input Validation
-- Validate all user inputs
-- Sanitize data before rendering
-- Use Content Security Policy headers
+// Route-based splitting
+const HomePage = lazy(() => import('./pages/HomePage'));
+```
 
-### Authentication
-- Implement proper token management
-- Use secure storage for sensitive data
-- Handle authentication errors gracefully
-
-## 📱 Mobile Considerations
+## 📱 Mobile & Accessibility
 
 ### Touch Interactions
-- Ensure touch targets are at least 44px
-- Implement proper touch feedback
+- Minimum 44px touch targets
+- Proper touch feedback
 - Test on actual devices
 
-### Performance
-- Optimize for slower networks
-- Implement progressive loading
-- Consider offline functionality
+### Accessibility
+```typescript
+// Semantic HTML with ARIA
+<button 
+  aria-label="Close modal"
+  onClick={handleClose}
+>
+  <Icon name="close" />
+</button>
+
+// Keyboard navigation
+<div role="button" tabIndex={0} onKeyDown={handleKeyDown}>
+  Clickable div
+</div>
+```
 
 ## 🎯 Code Quality
 
 ### Naming Conventions
-- Use PascalCase for components
-- Use camelCase for variables and functions
-- Use UPPER_SNAKE_CASE for constants
-- Use descriptive, meaningful names
-
-### Comments
-- Comment complex business logic
-- Document component props with JSDoc
-- Explain "why" not "what" in comments
+- PascalCase for components
+- camelCase for variables/functions
+- UPPER_SNAKE_CASE for constants
+- Descriptive, meaningful names
 
 ### Error Handling
-- Implement proper error boundaries
-- Provide meaningful error messages
-- Log errors appropriately
-- Graceful degradation for failures
+```typescript
+// Error boundaries
+class ErrorBoundary extends Component {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Log error securely
+    console.error('Error caught by boundary:', error, errorInfo);
+  }
+  
+  render() {
+    if (this.state.hasError) {
+      return <ErrorFallback />;
+    }
+    return this.props.children;
+  }
+}
+```
+
+### Comments & Documentation
+- Comment complex business logic
+- Document component props with JSDoc
+- Explain "why" not "what"
+- Keep comments up to date
+
+## ⚠️ Security Checklist
+
+- [ ] Validate all user inputs
+- [ ] Sanitize data before rendering
+- [ ] Use HTTPS in production
+- [ ] Implement proper authentication
+- [ ] Use secure storage (httpOnly cookies)
+- [ ] Handle errors without exposing sensitive data
+- [ ] Implement CSRF protection
+- [ ] Use Content Security Policy headers
+- [ ] Regular dependency updates
+- [ ] Security testing and audits

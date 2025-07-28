@@ -1,40 +1,37 @@
 ---
-description:
-globs:
+description: 
+globs: 
 alwaysApply: false
 ---
 # Backend AI Coding Rules
 
-## 🎯 General Principles
+## 🎯 Core Principles
 
-- **API-First**: Design RESTful or GraphQL APIs with clear contracts
-- **Type Safety**: Use TypeScript for all new code
-- **Security**: Implement proper authentication, authorization, and validation
-- **Performance**: Optimize database queries and API response times
-- **Scalability**: Design for horizontal scaling and microservices architecture
-- **Observability**: Comprehensive logging, monitoring, and error tracking
+- **Security First**: Implement proper authentication, authorization, input validation
+- **Type Safety**: Use TypeScript for all new code with strict mode
+- **Performance**: Optimize database queries, implement caching, use async/await
+- **Scalability**: Design for horizontal scaling, use microservices patterns
+- **Observability**: Comprehensive logging, monitoring, error tracking
 
-## 🏗️ Architecture Guidelines
+## 🏗️ Architecture & Structure
 
 ### Project Structure
 ```
 server/
 ├── src/
-│   ├── controllers/        # Request handlers
-│   ├── services/          # Business logic
-│   ├── models/            # Data models and schemas
-│   ├── middleware/        # Express middleware
-│   ├── routes/            # API route definitions
-│   ├── utils/             # Utility functions
-│   ├── types/             # TypeScript type definitions
-│   ├── config/            # Configuration files
-│   └── tests/             # Test files
-├── prisma/                # Database schema and migrations
-├── docs/                  # API documentation
-└── package.json
+│   ├── controllers/    # Request handlers
+│   ├── services/      # Business logic
+│   ├── models/        # Data models
+│   ├── middleware/    # Express middleware
+│   ├── routes/        # API routes
+│   ├── utils/         # Utilities
+│   ├── types/         # TypeScript types
+│   └── config/        # Configuration
+├── prisma/            # Database schema
+└── tests/             # Test files
 ```
 
-### Code Organization
+### Code Patterns
 ```typescript
 // Controller pattern
 export class UserController {
@@ -44,14 +41,15 @@ export class UserController {
     try {
       const userData = req.body;
       const user = await this.userService.createUser(userData);
-      res.status(201).json(user);
+      res.status(201).json({ success: true, data: user });
     } catch (error) {
       this.handleError(error, res);
     }
   }
 
   private handleError(error: Error, res: Response): void {
-    // Centralized error handling
+    logger.error('Controller error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 }
 
@@ -61,6 +59,7 @@ export class UserService {
 
   async createUser(userData: CreateUserDto): Promise<User> {
     // Business logic implementation
+    return await this.userRepository.create(userData);
   }
 }
 ```
@@ -75,11 +74,11 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    return res.status(401).json({ message: 'Access token required' });
+    return res.status(401).json({ success: false, message: 'Access token required' });
   }
 
   jwt.verify(token, process.env.JWT_SECRET!, (err: any, user: any) => {
-    if (err) return res.status(403).json({ message: 'Invalid token' });
+    if (err) return res.status(403).json({ success: false, message: 'Invalid token' });
     req.user = user;
     next();
   });
@@ -89,7 +88,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
 export const authorizeRoles = (...roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user || !roles.includes(req.user.role)) {
-      return res.status(403).json({ message: 'Insufficient permissions' });
+      return res.status(403).json({ success: false, message: 'Insufficient permissions' });
     }
     next();
   };
@@ -110,10 +109,35 @@ const createUserSchema = Joi.object({
 export const validateCreateUser = (req: Request, res: Response, next: NextFunction) => {
   const { error } = createUserSchema.validate(req.body);
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json({ 
+      success: false, 
+      message: error.details[0].message 
+    });
   }
   next();
 };
+```
+
+### Security Middleware
+```typescript
+// Rate limiting
+export const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 requests per window
+  message: { success: false, message: 'Too many requests' }
+});
+
+// Security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+}));
 ```
 
 ## 🗄️ Database Guidelines
@@ -127,23 +151,17 @@ export class UserRepository {
       where: { id: userId },
       include: {
         posts: {
-          select: {
-            id: true,
-            title: true,
-            createdAt: true
-          }
+          select: { id: true, title: true, createdAt: true }
         }
       }
     });
   }
 
-  // Use pagination for large datasets
+  // Pagination for large datasets
   async findUsers(page: number = 1, limit: number = 10): Promise<User[]> {
     const skip = (page - 1) * limit;
     return await prisma.user.findMany({
-      skip,
-      take: limit,
-      orderBy: { createdAt: 'desc' }
+      skip, take: limit, orderBy: { createdAt: 'desc' }
     });
   }
 }
@@ -155,26 +173,20 @@ export class UserRepository {
 export class OrderService {
   async createOrder(orderData: CreateOrderDto): Promise<Order> {
     return await prisma.$transaction(async (tx) => {
-      // Create order
-      const order = await tx.order.create({
-        data: orderData
-      });
-
-      // Update inventory
+      const order = await tx.order.create({ data: orderData });
       await tx.product.update({
         where: { id: orderData.productId },
         data: { stock: { decrement: orderData.quantity } }
       });
-
       return order;
     });
   }
 }
 ```
 
-## 📡 API Design Guidelines
+## 📡 API Design
 
-### RESTful API Patterns
+### RESTful Patterns
 ```typescript
 // Standard REST endpoints
 router.get('/users', userController.getUsers);
@@ -182,10 +194,6 @@ router.get('/users/:id', userController.getUser);
 router.post('/users', userController.createUser);
 router.put('/users/:id', userController.updateUser);
 router.delete('/users/:id', userController.deleteUser);
-
-// Nested resources
-router.get('/users/:userId/posts', userController.getUserPosts);
-router.post('/users/:userId/posts', userController.createUserPost);
 ```
 
 ### Response Format
@@ -215,11 +223,11 @@ res.status(200).json({
 res.status(400).json({
   success: false,
   message: 'Validation failed',
-  errors: ['Email is required', 'Password must be at least 8 characters']
+  errors: ['Email is required']
 });
 ```
 
-## 🧪 Testing Guidelines
+## 🧪 Testing
 
 ### Unit Testing
 ```typescript
@@ -238,19 +246,10 @@ describe('UserService', () => {
       const expectedUser = { id: '1', ...userData };
 
       mockUserRepository.createUser.mockResolvedValue(expectedUser);
-
       const result = await userService.createUser(userData);
 
       expect(result).toEqual(expectedUser);
       expect(mockUserRepository.createUser).toHaveBeenCalledWith(userData);
-    });
-
-    it('should throw error if user already exists', async () => {
-      const userData = { email: 'test@example.com', password: 'password123' };
-
-      mockUserRepository.createUser.mockRejectedValue(new Error('User already exists'));
-
-      await expect(userService.createUser(userData)).rejects.toThrow('User already exists');
     });
   });
 });
@@ -260,15 +259,9 @@ describe('UserService', () => {
 ```typescript
 describe('User API', () => {
   let app: Express;
-  let server: Server;
 
   beforeAll(async () => {
     app = createApp();
-    server = app.listen(0);
-  });
-
-  afterAll(async () => {
-    await server.close();
   });
 
   describe('POST /users', () => {
@@ -291,7 +284,7 @@ describe('User API', () => {
 });
 ```
 
-## 🚀 Performance Guidelines
+## 🚀 Performance
 
 ### Caching Strategy
 ```typescript
@@ -308,40 +301,29 @@ export class CacheService {
     await this.redis.setex(key, ttl, JSON.stringify(value));
   }
 }
+```
 
-// Cache middleware
-export const cacheMiddleware = (ttl: number = 3600) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
-    const key = `cache:${req.originalUrl}`;
-    const cached = await cacheService.get(key);
-    
-    if (cached) {
-      return res.json(cached);
-    }
-    
-    next();
-  };
+### Performance Monitoring
+```typescript
+// Request timing middleware
+export const requestTimer = (req: Request, res: Response, next: NextFunction) => {
+  const start = Date.now();
+  
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    logger.info('Request completed', {
+      method: req.method,
+      url: req.url,
+      status: res.statusCode,
+      duration
+    });
+  });
+  
+  next();
 };
 ```
 
-### Rate Limiting
-```typescript
-import rateLimit from 'express-rate-limit';
-
-export const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
-});
-
-export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 requests per windowMs
-  message: 'Too many authentication attempts, please try again later.'
-});
-```
-
-## 📊 Monitoring & Logging
+## 📊 Logging & Monitoring
 
 ### Structured Logging
 ```typescript
@@ -359,24 +341,6 @@ export const logger = winston.createLogger({
     new winston.transports.File({ filename: 'combined.log' })
   ]
 });
-
-// Logging middleware
-export const requestLogger = (req: Request, res: Response, next: NextFunction) => {
-  const start = Date.now();
-  
-  res.on('finish', () => {
-    const duration = Date.now() - start;
-    logger.info('HTTP Request', {
-      method: req.method,
-      url: req.url,
-      status: res.statusCode,
-      duration,
-      userAgent: req.get('User-Agent')
-    });
-  });
-  
-  next();
-};
 ```
 
 ### Error Handling
@@ -398,13 +362,6 @@ export const errorHandler = (error: Error, req: Request, res: Response, next: Ne
     });
   }
 
-  if (error instanceof AuthenticationError) {
-    return res.status(401).json({
-      success: false,
-      message: 'Authentication failed'
-    });
-  }
-
   res.status(500).json({
     success: false,
     message: 'Internal server error'
@@ -412,46 +369,53 @@ export const errorHandler = (error: Error, req: Request, res: Response, next: Ne
 };
 ```
 
-## 🔄 Environment Configuration
+## 🔧 Configuration
 
-### Configuration Management
+### Environment Management
 ```typescript
 import dotenv from 'dotenv';
-
 dotenv.config();
 
 export const config = {
   port: process.env.PORT || 3000,
   nodeEnv: process.env.NODE_ENV || 'development',
-  database: {
-    url: process.env.DATABASE_URL!,
-  },
+  database: { url: process.env.DATABASE_URL! },
   jwt: {
     secret: process.env.JWT_SECRET!,
     expiresIn: process.env.JWT_EXPIRES_IN || '24h'
   },
-  redis: {
-    url: process.env.REDIS_URL || 'redis://localhost:6379'
-  }
+  redis: { url: process.env.REDIS_URL || 'redis://localhost:6379' }
 } as const;
 ```
 
 ## 🎯 Code Quality
 
 ### Naming Conventions
-- Use camelCase for variables and functions
-- Use PascalCase for classes and interfaces
-- Use UPPER_SNAKE_CASE for constants
-- Use descriptive, meaningful names
+- camelCase for variables and functions
+- PascalCase for classes and interfaces
+- UPPER_SNAKE_CASE for constants
+- Descriptive, meaningful names
 
-### Comments
+### Comments & Documentation
 - Comment complex business logic
 - Document API endpoints with JSDoc
-- Explain "why" not "what" in comments
+- Explain "why" not "what"
 - Keep comments up to date
 
-### Error Handling
-- Use custom error classes
-- Implement proper error boundaries
-- Provide meaningful error messages
-- Log errors with context
+## ⚠️ Security Checklist
+
+- [ ] Implement proper authentication (JWT, sessions)
+- [ ] Use role-based authorization
+- [ ] Validate all inputs (Joi/Zod)
+- [ ] Sanitize data before database operations
+- [ ] Use parameterized queries (no SQL injection)
+- [ ] Implement rate limiting
+- [ ] Use HTTPS in production
+- [ ] Set security headers (Helmet.js)
+- [ ] Handle errors without exposing sensitive data
+- [ ] Use secure session management
+- [ ] Regular dependency updates
+- [ ] Security testing and audits
+- [ ] Input validation on all endpoints
+- [ ] Proper CORS configuration
+- [ ] CSRF protection for state-changing operations
